@@ -237,7 +237,7 @@ def nam_sam_idx(fp = r"C:\Users\JDawg\OneDrive\Desktop\England Research\O2Densit
 
 def load_o2wNe(o2_df, fp = r'E:\on2\cosmic2_gis'):
     #get pairings with o2
-    Ne_lon_list, Ne_lat_list, Ne_den_list, hmfe2 = [], [], [],[]
+    Ne_lon_list, Ne_lat_list, Ne_den_list, TEC_list = [], [], [],[]
     alt = np.linspace(0, 1000, 51)
     lat = np.linspace(-90, 90, num=73)
     # lon = np.linspace(0, 360, num=72, endpoint=False)
@@ -255,7 +255,7 @@ def load_o2wNe(o2_df, fp = r'E:\on2\cosmic2_gis'):
             Ne_lon_list.append(np.nan)
             Ne_lat_list.append(np.nan)
             Ne_den_list.append(np.nan)
-            hmfe2.append(np.nan)
+            TEC_list.append(np.nan)
             continue
 
         try:
@@ -266,13 +266,14 @@ def load_o2wNe(o2_df, fp = r'E:\on2\cosmic2_gis'):
 
         Ne = ds.variables['Ne'][:].data #1e5 cm^-3 
         
-
-
-        
+        # plt.figure()
+        # plt.pcolor(lon, lat, Ne[20], cmap = 'jet')
+        # plt.show()
         # Ne = alt[np.argmax(Ne, axis = 0)]
         
         from scipy import ndimage
-        # Ne = ndimage.median_filter(np.trapz(Ne[5:]*1e5*1e6,dx = 20*1e3, axis = 0), size=5)/1e16 #convert to SI and then normalized TEC
+
+        TEC = ndimage.median_filter(np.trapz(Ne[5:]*1e5*1e6,dx = 20*1e3, axis = 0), size=5)/1e16 #convert to SI and then normalized TEC
         Ne = ndimage.median_filter(np.trapz(Ne[8:11]*1e5*1e6,dx = 20*1e3, axis = 0), size=5)/1e16 #convert to SI and then normalized TEC
         # Ne = ndimage.median_filter(Ne[9], size=5)
         # breakpoint()
@@ -290,18 +291,19 @@ def load_o2wNe(o2_df, fp = r'E:\on2\cosmic2_gis'):
 
 
         Ne_patch = Ne[lat_min:lat_max, lon_min:lon_max]
-
+        TEC_patch = TEC[lat_min: lat_max, lon_min:lon_max]
 
         Ne_lon_list.append(Lon_grid.mean() % 360)
         Ne_lat_list.append(Lat_grid.mean())
         Ne_den_list.append(np.nanmedian(Ne_patch))
-        hmfe2.append(np.nanmedian(alt[np.argmax(ds.variables['Ne'][:].data, axis = 0)][lat_min:lat_max, lon_min:lon_max]))
+        TEC_list.append(np.nanmedian(TEC_patch))
+        # hmfe2.append(np.nanmedian(alt[np.argmax(ds.variables['Ne'][:].data, axis = 0)][lat_min:lat_max, lon_min:lon_max]))
         
     o2_df['Ne_lon'] = Ne_lon_list
     o2_df['Ne_lat'] = Ne_lat_list
-    o2_df['Ne_den'] = Ne_den_list      
+    o2_df['ne_160_200km'] = Ne_den_list
+    o2_df['TEC'] = TEC_list      
     o2_df['Ne_ut'] = o2_df['o2_datetime'].dt.floor('h')
-    o2_df['hmfe2'] = hmfe2
     # o2_df = o2_df.explode(['Ne_lon', 'Ne_lat','Ne_den']).reset_index()
     # o2_df['lon'] = o2_df.o2_lon%360   #This may need to occur
     return o2_df
